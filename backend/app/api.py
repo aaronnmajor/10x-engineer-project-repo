@@ -131,6 +131,34 @@ def patch_prompt(prompt_id: str, prompt_data: PromptUpdate):
     return storage.update_prompt(prompt_id, updated_prompt)
 
 
+@app.delete("/prompts/{prompt_id}", status_code=204)
+def delete_prompt(prompt_id: str):
+    if not storage.delete_prompt(prompt_id):
+        raise HTTPException(status_code=404, detail="Prompt not found")
+    return None
+
+
+# ============== Collection Endpoints ==============
+@app.get("/collections", response_model=CollectionList)
+def list_collections():
+    collections = storage.get_all_collections()
+    return CollectionList(collections=collections, total=len(collections))
+
+
+@app.get("/collections/{collection_id}", response_model=Collection)
+def get_collection(collection_id: str):
+    collection = storage.get_collection(collection_id)
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    return collection
+
+
+@app.post("/collections", response_model=Collection, status_code=201)
+def create_collection(collection_data: CollectionCreate):
+    collection = Collection(**collection_data.model_dump())
+    return storage.create_collection(collection)
+
+
 @app.delete("/collections/{collection_id}", status_code=204)
 def delete_collection(collection_id: str):
     # Retrieve all prompts in the collection
@@ -169,16 +197,4 @@ def create_collection(collection_data: CollectionCreate):
     return storage.create_collection(collection)
 
 
-@app.delete("/collections/{collection_id}", status_code=204)
-def delete_collection(collection_id: str):
-    # BUG #4: We delete the collection but don't handle the prompts!
-    # Prompts with this collection_id become orphaned with invalid reference
-    # Should either: delete the prompts, set collection_id to None, or prevent deletion
-    
-    if not storage.delete_collection(collection_id):
-        raise HTTPException(status_code=404, detail="Collection not found")
-    
-    # Missing: Handle prompts that belong to this collection!
-    
-    return None
 
