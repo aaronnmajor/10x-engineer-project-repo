@@ -131,10 +131,20 @@ def patch_prompt(prompt_id: str, prompt_data: PromptUpdate):
     return storage.update_prompt(prompt_id, updated_prompt)
 
 
-@app.delete("/prompts/{prompt_id}", status_code=204)
-def delete_prompt(prompt_id: str):
-    if not storage.delete_prompt(prompt_id):
-        raise HTTPException(status_code=404, detail="Prompt not found")
+@app.delete("/collections/{collection_id}", status_code=204)
+def delete_collection(collection_id: str):
+    # Retrieve all prompts in the collection
+    associated_prompts = [prompt for prompt in storage.get_all_prompts() if prompt.collection_id == collection_id]
+    
+    # Update each prompt's collection_id to None
+    for prompt in associated_prompts:
+        updated_prompt = prompt.copy(update={"collection_id": None})
+        storage.update_prompt(prompt.id, updated_prompt)
+    
+    # Proceed with deleting the collection
+    if not storage.delete_collection(collection_id):
+        raise HTTPException(status_code=404, detail="Collection not found")
+    
     return None
 
 
