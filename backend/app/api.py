@@ -56,7 +56,6 @@ def list_prompts(
         prompts = search_prompts(prompts, search)
     
     # Sort by date (newest first)
-    # Note: There might be an issue with the sorting...
     prompts = sort_prompts_by_date(prompts, descending=True)
     
     return PromptList(prompts=prompts, total=len(prompts))
@@ -109,8 +108,7 @@ def update_prompt(prompt_id: str, prompt_data: PromptUpdate):
     return storage.update_prompt(prompt_id, updated_prompt)
 
 
-# NOTE: PATCH endpoint is missing! Students need to implement this.
-# It should allow partial updates (only update provided fields)
+# Added support for partial updates
 @app.patch("/prompts/{prompt_id}", response_model=Prompt)
 def patch_prompt(prompt_id: str, prompt_data: PromptPartialUpdate):
     existing = storage.get_prompt(prompt_id)
