@@ -1,167 +1,274 @@
 # PromptLab
 
-**Your AI Prompt Engineering Platform**
+FastAPI-based prompt engineering platform for creating, organizing, and testing reusable prompt templates.
 
 ---
 
-## Welcome to the Team! 👋
+## Table of Contents
 
-Congratulations on joining the PromptLab engineering team! You've been brought on to help us build the next generation of prompt engineering tools.
-
-### What is PromptLab?
-
-PromptLab is an internal tool for AI engineers to **store, organize, and manage their prompts**. Think of it as a "Postman for Prompts" — a professional workspace where teams can:
-
-- 📝 Store prompt templates with variables (`{{input}}`, `{{context}}`)
-- 📁 Organize prompts into collections
-- 🏷️ Tag and search prompts
-- 📜 Track version history
-- 🧪 Test prompts with sample inputs
-
-### The Current Situation
-
-The previous developer left us with a *partially working* backend. The core structure is there, but:
-
-- There are **several bugs** that need fixing
-- Some **features are incomplete**
-- The **documentation is minimal** (you'll fix that)
-- There are **no tests** worth mentioning
-- **No CI/CD pipeline** exists
-- **No frontend** has been built yet
-
-Your job over the next 4 weeks is to transform this into a **production-ready, full-stack application**.
+1. [Project Overview](#project-overview)
+2. [Key Features](#key-features)
+3. [Architecture](#architecture)
+4. [Prerequisites & Installation](#prerequisites--installation)
+5. [Quick Start](#quick-start)
+6. [API Summary](#api-summary)
+7. [Development Setup](#development-setup)
+8. [Contributing](#contributing)
+9. [License](#license)
 
 ---
 
-## Quick Start
+## Project Overview
 
-### Prerequisites
+PromptLab is an internal productivity tool that helps AI engineers build a shared library of prompts. It ships with a FastAPI backend, Pydantic models, and a lightweight in-memory storage layer so teams can rapidly prototype prompt workflows before adopting persistent databases. The service exposes REST endpoints for CRUD operations on prompts and collections, plus utilities such as search, filtering, and health monitoring.
 
-- Python 3.10+
-- Node.js 18+ (for Week 4)
-- Git
+---
 
-### Run Locally
+## Key Features
+
+- **Prompt Management** – Create, update, partially update, delete, and list prompts.
+- **Collections** – Group prompts into themed collections for easy discovery.
+- **Search & Filtering** – Filter prompts by collection or keyword with utility helpers.
+- **Timestamping & IDs** – Pydantic models auto-generate UUIDs and creation/update timestamps.
+- **Health Monitoring** – `/health` endpoint exposes service status and git version.
+- **Extensible Storage Layer** – Swappable in-memory store that can be replaced with a database.
+- **FastAPI Tooling** – Automatic OpenAPI docs, interactive Swagger UI, and validation.
+
+---
+
+## Architecture
+
+```
+promptlab/
+├── backend/
+│   ├── app/
+│   │   ├── api.py        # FastAPI routers and request handlers
+│   │   ├── models.py     # Pydantic schemas and helpers
+│   │   ├── storage.py    # In-memory repositories for prompts & collections
+│   │   └── utils.py      # Filtering, sorting, and search helpers
+│   ├── main.py           # FastAPI entrypoint
+│   ├── requirements.txt  # Backend dependencies
+│   └── tests/            # pytest suite
+├── docs/                 # Product & API documentation (future)
+├── specs/                # Functional specs (future)
+└── frontend/             # React application (future)
+```
+
+---
+
+## Prerequisites & Installation
+
+| Tool        | Version   | Notes                           |
+|-------------|-----------|---------------------------------|
+| Python      | 3.10 or + | Required for the FastAPI app    |
+| pip         | Latest    | Used to install dependencies    |
+| Node.js     | 18 or +   | Reserved for the frontend phase |
+| Git         | 2.40 or + | Version control                  |
+
+### Clone and Install
 
 ```bash
 # Clone the repo
 git clone <your-repo-url>
 cd promptlab
 
-# Set up backend
+# Create virtual environment (optional but recommended)
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# Install backend dependencies
 cd backend
 pip install -r requirements.txt
-python main.py
 ```
 
-API runs at: http://localhost:8000
+---
 
-API docs at: http://localhost:8000/docs
+## Quick Start
 
-### Run Tests
+1. **Run the API**
+   ```bash
+   uvicorn app.api:app --reload
+   ```
+   - REST API: http://localhost:8000
+   - Docs (Swagger UI): http://localhost:8000/docs
+   - ReDoc: http://localhost:8000/redoc
+
+2. **Seed Example Data (optional)**
+   - Use the `/collections` and `/prompts` POST endpoints or `app.storage.storage` in an interactive shell to insert sample items.
+
+3. **Run Tests**
+   ```bash
+   pytest -v
+   ```
+
+---
+
+## API Summary
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET    | `/health` | Health status + version metadata |
+| GET    | `/prompts` | List prompts, with optional `collection_id` and `search` filters |
+| GET    | `/prompts/{prompt_id}` | Retrieve a specific prompt |
+| POST   | `/prompts` | Create a new prompt |
+| PUT    | `/prompts/{prompt_id}` | Replace an existing prompt |
+| PATCH  | `/prompts/{prompt_id}` | Partially update prompt fields |
+| DELETE | `/prompts/{prompt_id}` | Delete a prompt |
+| GET    | `/collections` | List all collections |
+| GET    | `/collections/{collection_id}` | Retrieve a collection |
+| POST   | `/collections` | Create a collection |
+| DELETE | `/collections/{collection_id}` | Delete a collection (prompts are disassociated) |
+
+### Example Requests & Responses
+
+<details>
+<summary><strong>GET /health</strong></summary>
+
+**Request**
 
 ```bash
-cd backend
-pytest tests/ -v
+curl http://localhost:8000/health
 ```
 
----
+**Response**
 
-## Project Structure
-
+```json
+{
+  "status": "healthy",
+  "version": "1.0.0"
+}
 ```
-promptlab/
-├── README.md                    # You are here
-├── PROJECT_BRIEF.md             # Your assignment details
-├── GRADING_RUBRIC.md            # How you'll be graded
-│
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── api.py              # FastAPI routes (has bugs!)
-│   │   ├── models.py           # Pydantic models
-│   │   ├── storage.py          # In-memory storage
-│   │   └── utils.py            # Helper functions
-│   ├── tests/
-│   │   ├── __init__.py
-│   │   ├── test_api.py         # Basic tests
-│   │   └── conftest.py         # Test fixtures
-│   ├── main.py                 # Entry point
-│   └── requirements.txt
-│
-├── frontend/                    # You'll create this in Week 4
-├── specs/                       # You'll create this in Week 2
-├── docs/                        # You'll create this in Week 2
-└── .github/                     # You'll set up CI/CD in Week 3
+</details>
+
+<details>
+<summary><strong>POST /collections</strong></summary>
+
+**Request**
+
+```bash
+curl -X POST \
+  http://localhost:8000/collections \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Productivity", "description": "Prompts for focus"}'
 ```
 
+**Response**
+
+```json
+{
+  "id": "f2c4...",
+  "name": "Productivity",
+  "description": "Prompts for focus",
+  "created_at": "2024-05-01T12:00:00"
+}
+```
+</details>
+
+<details>
+<summary><strong>POST /prompts</strong></summary>
+
+**Request**
+
+```bash
+curl -X POST \
+  http://localhost:8000/prompts \
+  -H "Content-Type: application/json" \
+  -d '{
+        "title": "Summarize an article",
+        "content": "Summarize the provided text in 3 bullets.",
+        "description": "General summarization guidance",
+        "collection_id": "f2c4..."
+      }'
+```
+
+**Response**
+
+```json
+{
+  "id": "0c74...",
+  "title": "Summarize an article",
+  "content": "Summarize the provided text in 3 bullets.",
+  "description": "General summarization guidance",
+  "collection_id": "f2c4...",
+  "created_at": "2024-05-01T12:05:00",
+  "updated_at": "2024-05-01T12:05:00"
+}
+```
+</details>
+
+<details>
+<summary><strong>PATCH /prompts/{prompt_id}</strong></summary>
+
+**Request**
+
+```bash
+curl -X PATCH \
+  http://localhost:8000/prompts/0c74... \
+  -H "Content-Type: application/json" \
+  -d '{"description": "Updated with tone guidance"}'
+```
+
+**Response**
+
+```json
+{
+  "id": "0c74...",
+  "title": "Summarize an article",
+  "content": "Summarize the provided text in 3 bullets.",
+  "description": "Updated with tone guidance",
+  "collection_id": "f2c4...",
+  "created_at": "2024-05-01T12:05:00",
+  "updated_at": "2024-05-01T12:10:32"
+}
+```
+</details>
+
+<details>
+<summary><strong>DELETE /collections/{collection_id}</strong></summary>
+
+**Behavior**
+- Disassociates prompts in the collection by setting their `collection_id` to `null` before removing the collection.
+
+**Request**
+
+```bash
+curl -X DELETE http://localhost:8000/collections/f2c4...
+```
+
+**Response**
+
+```
+204 No Content
+```
+</details>
+
 ---
 
-## Your Mission
+## Development Setup
 
-### 🧪 Experimentation Encouraged!
-While we provide guidelines, **you are the engineer**. If you see a better way to solve a problem using AI, do it!
-- Want to swap the storage layer for a real database? **Go for it.**
-- Want to add Authentication? **Do it.**
-- Want to rewrite the API in a different style? **As long as tests pass, you're clear.**
-
-The goal is to learn how to build *better* software *faster* with AI. Don't be afraid to break things and rebuild them better.
-
-### Week 1: Fix the Backend
-- Understand this codebase using AI
-- Find and fix the bugs
-- Implement missing features
-
-### Week 2: Document Everything
-- Write proper documentation
-- Create feature specifications
-- Set up coding standards
-
-### Week 3: Make it Production-Ready
-- Write comprehensive tests
-- Implement new features with TDD
-- Set up CI/CD and Docker
-
-### Week 4: Build the Frontend
-- Create a React frontend
-- Connect it to the backend
-- Polish the user experience
+1. **Environment Variables** – No secrets required for in-memory mode. Add `.env` if you later integrate databases or APIs.
+2. **Code Quality**
+   - Format: `ruff format` or `black` (choose one for your workflow).
+   - Lint: `ruff check` or `flake8`.
+3. **Reloading** – Use `uvicorn --reload` for hot reload during API development.
+4. **Testing** – Add new pytest cases under `backend/tests/`. Keep fixtures in `conftest.py`.
+5. **Data Layer Swap** – Replace `Storage` in `app/storage.py` with your preferred persistence mechanism without touching the API surface.
 
 ---
 
-## API Endpoints (Current)
+## Contributing
 
-| Method | Endpoint | Description | Status |
-|--------|----------|-------------|--------|
-| GET | `/health` | Health check | ✅ Works |
-| GET | `/prompts` | List all prompts | ⚠️ Has issues |
-| GET | `/prompts/{id}` | Get single prompt | ❌ Bug |
-| POST | `/prompts` | Create prompt | ✅ Works |
-| PUT | `/prompts/{id}` | Update prompt | ⚠️ Has issues |
-| DELETE | `/prompts/{id}` | Delete prompt | ✅ Works |
-| GET | `/collections` | List collections | ✅ Works |
-| GET | `/collections/{id}` | Get collection | ✅ Works |
-| POST | `/collections` | Create collection | ✅ Works |
-| DELETE | `/collections/{id}` | Delete collection | ❌ Bug |
+1. **Fork** the repository or create a feature branch.
+2. **Create an Issue** describing the change or bug fix.
+3. **Develop** your feature:
+   - Follow existing code style and Pydantic/FastAPI best practices.
+   - Add or update tests for any new behavior.
+4. **Run Tests & Linters** before pushing.
+5. **Submit a Pull Request** with a clear summary, screenshots (if applicable), and testing notes.
+6. **Code Review** – Address feedback promptly to keep the release pipeline moving.
 
 ---
 
-## Tech Stack
+## License
 
-- **Backend**: Python 3.10+, FastAPI, Pydantic
-- **Frontend**: React, Vite (Week 4)
-- **Testing**: pytest
-- **DevOps**: Docker, GitHub Actions (Week 3)
-
----
-
-## Need Help?
-
-1. **Use AI tools** — This is an AI-assisted coding course!
-2. Read the `PROJECT_BRIEF.md` for detailed instructions
-3. Check `GRADING_RUBRIC.md` to understand expectations
-4. Ask questions in the course forum
-
----
-
-Good luck, and welcome to the team! 🚀
+This project is currently proprietary and intended for internal PromptLab experimentation. Contact the maintainers before distributing outside the organization.
