@@ -35,6 +35,20 @@ app.add_middleware(
 
 @app.get("/health", response_model=HealthResponse)
 def health_check():
+    """Check API health status and version metadata.
+
+    Args:
+        None.
+
+    Returns:
+        HealthResponse: Service status information and semantic version metadata.
+
+    Raises:
+        HTTPException: 500 if the health check encounters an unexpected server error.
+
+    Example:
+        >>> curl -X GET "http://localhost:8000/health"
+    """
     return HealthResponse(status="healthy", version=__version__)
 
 
@@ -45,6 +59,21 @@ def list_prompts(
     collection_id: Optional[str] = None,
     search: Optional[str] = None
 ):
+    """Retrieve prompts with optional collection and keyword filters.
+
+    Args:
+        collection_id (Optional[str]): Identifier of the collection used to limit the result set.
+        search (Optional[str]): Case-insensitive term applied to prompt titles, descriptions, and content.
+
+    Returns:
+        PromptList: Sorted prompts and the total count after filtering.
+
+    Raises:
+        HTTPException: 500 if prompt retrieval fails unexpectedly.
+
+    Example:
+        >>> curl -G "http://localhost:8000/prompts" --data-urlencode "collection_id=abc123" --data-urlencode "search=chatbot"
+    """
     prompts = storage.get_all_prompts()
     
     # Filter by collection if specified
@@ -63,6 +92,20 @@ def list_prompts(
 
 @app.get("/prompts/{prompt_id}", response_model=Prompt)
 def get_prompt(prompt_id: str):
+    """Fetch a single prompt by its unique identifier.
+
+    Args:
+        prompt_id (str): Unique identifier of the prompt to retrieve.
+
+    Returns:
+        Prompt: Prompt resource that matches the provided identifier.
+
+    Raises:
+        HTTPException: 404 if the prompt does not exist.
+
+    Example:
+        >>> curl -X GET "http://localhost:8000/prompts/123e4567"
+    """
     prompt = storage.get_prompt(prompt_id)
     # Check if prompt is None
     if not prompt:
@@ -72,6 +115,20 @@ def get_prompt(prompt_id: str):
 
 @app.post("/prompts", response_model=Prompt, status_code=201)
 def create_prompt(prompt_data: PromptCreate):
+    """Create a new prompt resource.
+
+    Args:
+        prompt_data (PromptCreate): Validated data describing the prompt to persist.
+
+    Returns:
+        Prompt: Newly created prompt instance.
+
+    Raises:
+        HTTPException: 400 if the supplied collection_id does not reference an existing collection.
+
+    Example:
+        >>> curl -X POST "http://localhost:8000/prompts" -H "Content-Type: application/json" -d '{"title":"Greeting","content":"Hello"}'
+    """
     # Validate collection exists if provided
     if prompt_data.collection_id:
         collection = storage.get_collection(prompt_data.collection_id)
@@ -84,6 +141,22 @@ def create_prompt(prompt_data: PromptCreate):
 
 @app.put("/prompts/{prompt_id}", response_model=Prompt)
 def update_prompt(prompt_id: str, prompt_data: PromptUpdate):
+    """Replace an existing prompt with updated field values.
+
+    Args:
+        prompt_id (str): Unique identifier of the prompt to update.
+        prompt_data (PromptUpdate): Replacement values for the prompt.
+
+    Returns:
+        Prompt: Updated prompt persisted in storage.
+
+    Raises:
+        HTTPException: 404 if the prompt does not exist.
+        HTTPException: 400 if the supplied collection_id does not reference an existing collection.
+
+    Example:
+        >>> curl -X PUT "http://localhost:8000/prompts/123e4567" -H "Content-Type: application/json" -d '{"title":"New Title","content":"Updated"}'
+    """
     existing = storage.get_prompt(prompt_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Prompt not found")
@@ -111,6 +184,21 @@ def update_prompt(prompt_id: str, prompt_data: PromptUpdate):
 # Added support for partial updates
 @app.patch("/prompts/{prompt_id}", response_model=Prompt)
 def patch_prompt(prompt_id: str, prompt_data: PromptPartialUpdate):
+    """Partially update specific fields of a prompt.
+
+    Args:
+        prompt_id (str): Unique identifier of the prompt to update.
+        prompt_data (PromptPartialUpdate): Subset of fields to modify.
+
+    Returns:
+        Prompt: Prompt instance reflecting the partial update.
+
+    Raises:
+        HTTPException: 404 if the prompt does not exist.
+
+    Example:
+        >>> curl -X PATCH "http://localhost:8000/prompts/123e4567" -H "Content-Type: application/json" -d '{"description":"Clarified use case"}'
+    """
     existing = storage.get_prompt(prompt_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Prompt not found")
@@ -131,6 +219,20 @@ def patch_prompt(prompt_id: str, prompt_data: PromptPartialUpdate):
 
 @app.delete("/prompts/{prompt_id}", status_code=204)
 def delete_prompt(prompt_id: str):
+    """Delete a prompt by its identifier.
+
+    Args:
+        prompt_id (str): Unique identifier of the prompt to delete.
+
+    Returns:
+        None: The response body is empty when deletion succeeds.
+
+    Raises:
+        HTTPException: 404 if the prompt does not exist.
+
+    Example:
+        >>> curl -X DELETE "http://localhost:8000/prompts/123e4567"
+    """
     if not storage.delete_prompt(prompt_id):
         raise HTTPException(status_code=404, detail="Prompt not found")
     return None
@@ -139,12 +241,40 @@ def delete_prompt(prompt_id: str):
 # ============== Collection Endpoints ==============
 @app.get("/collections", response_model=CollectionList)
 def list_collections():
+    """List all prompt collections.
+
+    Args:
+        None.
+
+    Returns:
+        CollectionList: All collections and their total count.
+
+    Raises:
+        HTTPException: 500 if collection retrieval fails unexpectedly.
+
+    Example:
+        >>> curl -X GET "http://localhost:8000/collections"
+    """
     collections = storage.get_all_collections()
     return CollectionList(collections=collections, total=len(collections))
 
 
 @app.get("/collections/{collection_id}", response_model=Collection)
 def get_collection(collection_id: str):
+    """Retrieve a collection by its identifier.
+
+    Args:
+        collection_id (str): Unique identifier of the collection to fetch.
+
+    Returns:
+        Collection: Resource that matches the provided identifier.
+
+    Raises:
+        HTTPException: 404 if the collection does not exist.
+
+    Example:
+        >>> curl -X GET "http://localhost:8000/collections/abc123"
+    """
     collection = storage.get_collection(collection_id)
     if not collection:
         raise HTTPException(status_code=404, detail="Collection not found")
@@ -153,12 +283,40 @@ def get_collection(collection_id: str):
 
 @app.post("/collections", response_model=Collection, status_code=201)
 def create_collection(collection_data: CollectionCreate):
+    """Create a new prompt collection.
+
+    Args:
+        collection_data (CollectionCreate): Validated data for the collection to persist.
+
+    Returns:
+        Collection: Newly created collection.
+
+    Raises:
+        HTTPException: 500 if the collection cannot be persisted due to an unexpected error.
+
+    Example:
+        >>> curl -X POST "http://localhost:8000/collections" -H "Content-Type: application/json" -d '{"name":"Productivity"}'
+    """
     collection = Collection(**collection_data.model_dump())
     return storage.create_collection(collection)
 
 
 @app.delete("/collections/{collection_id}", status_code=204)
 def delete_collection(collection_id: str):
+    """Delete a collection and disassociate its prompts.
+
+    Args:
+        collection_id (str): Unique identifier of the collection to delete.
+
+    Returns:
+        None: The response body is empty when deletion succeeds.
+
+    Raises:
+        HTTPException: 404 if the collection does not exist.
+
+    Example:
+        >>> curl -X DELETE "http://localhost:8000/collections/abc123"
+    """
     # Retrieve all prompts in the collection
     associated_prompts = [prompt for prompt in storage.get_all_prompts() if prompt.collection_id == collection_id]
     
@@ -172,27 +330,4 @@ def delete_collection(collection_id: str):
         raise HTTPException(status_code=404, detail="Collection not found")
     
     return None
-
-
-# ============== Collection Endpoints ==============
-@app.get("/collections", response_model=CollectionList)
-def list_collections():
-    collections = storage.get_all_collections()
-    return CollectionList(collections=collections, total=len(collections))
-
-
-@app.get("/collections/{collection_id}", response_model=Collection)
-def get_collection(collection_id: str):
-    collection = storage.get_collection(collection_id)
-    if not collection:
-        raise HTTPException(status_code=404, detail="Collection not found")
-    return collection
-    
-
-@app.post("/collections", response_model=Collection, status_code=201)
-def create_collection(collection_data: CollectionCreate):
-    collection = Collection(**collection_data.model_dump())
-    return storage.create_collection(collection)
-
-
 
