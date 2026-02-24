@@ -48,6 +48,38 @@ class TestPrompts:
         assert len(data["prompts"]) == 1
         assert data["total"] == 1
     
+    def test_list_prompts_with_search(self, client: TestClient, sample_prompt_data):
+        # Create two prompts with distinct titles
+        client.post("/prompts", json=sample_prompt_data)
+        brainstorming_prompt = {
+            **sample_prompt_data,
+            "title": "Brainstorm marketing ideas",
+            "content": "Generate creative marketing campaigns"
+        }
+        client.post("/prompts", json=brainstorming_prompt)
+        
+        response = client.get("/prompts", params={"search": "brainstorm"})
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["prompts"]) == 1
+        assert data["total"] == 1
+        assert data["prompts"][0]["title"] == brainstorming_prompt["title"]
+    
+    def test_list_prompts_with_collection_filter(self, client: TestClient, sample_prompt_data, sample_collection_data):
+        # Create a collection and prompts both inside and outside it
+        collection_response = client.post("/collections", json=sample_collection_data)
+        collection_id = collection_response.json()["id"]
+        prompt_in_collection = {**sample_prompt_data, "collection_id": collection_id}
+        client.post("/prompts", json=prompt_in_collection)
+        client.post("/prompts", json={**sample_prompt_data, "title": "Outside collection"})
+        
+        response = client.get("/prompts", params={"collection_id": collection_id})
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["prompts"]) == 1
+        assert data["total"] == 1
+        assert data["prompts"][0]["collection_id"] == collection_id
+    
     def test_get_prompt_success(self, client: TestClient, sample_prompt_data):
         # Create a prompt first
         create_response = client.post("/prompts", json=sample_prompt_data)
@@ -106,6 +138,34 @@ class TestPrompts:
         # NOTE: This assertion will fail due to Bug #2!
         # The updated_at should be different from original
         # assert data["updated_at"] != original_updated_at  # Uncomment after fix
+
+    def test_patch_prompt_title(self, client: TestClient, sample_prompt_data):
+        # Create a prompt first
+        create_response = client.post("/prompts", json=sample_prompt_data)
+        prompt_id = create_response.json()["id"]
+        
+        patch_payload = {"title": "Patched Title"}
+        response = client.patch(f"/prompts/{prompt_id}", json=patch_payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["title"] == "Patched Title"
+        assert data["content"] == sample_prompt_data["content"]
+    
+    def test_patch_prompt_content(self, client: TestClient, sample_prompt_data):
+        # Create a prompt first
+        create_response = client.post("/prompts", json=sample_prompt_data)
+        prompt_id = create_response.json()["id"]
+        
+        patch_payload = {"content": "Patched content body"}
+        response = client.patch(f"/prompts/{prompt_id}", json=patch_payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["content"] == "Patched content body"
+        assert data["title"] == sample_prompt_data["title"]
+    
+    def test_patch_prompt_not_found(self, client: TestClient):
+        response = client.patch("/prompts/nonexistent-id", json={"title": "Missing"})
+        assert response.status_code == 404
     
     def test_sorting_order(self, client: TestClient):
         """Test that prompts are sorted newest first.
@@ -127,6 +187,38 @@ class TestPrompts:
         
         # Newest (Second) should be first
         assert prompts[0]["title"] == "Second"  # Will fail until Bug #3 fixed
+
+
+    def test_update_prompt_not_found(self, client: TestClient):
+        payload = {
+            "title": "Updated Title",
+            "content": "Updated content",
+            "description": "Updated description"
+        }
+        response = client.put("/prompts/nonexistent-id", json=payload)
+        assert response.status_code == 404
+    
+    def test_delete_prompt_not_found(self, client: TestClient):
+        response = client.delete("/prompts/nonexistent-id")
+        assert response.status_code == 404
+    
+    def test_create_prompt_invalid_collection(self, client: TestClient, sample_prompt_data):
+        payload = {**sample_prompt_data, "collection_id": "nonexistent-collection"}
+        response = client.post("/prompts", json=payload)
+        assert response.status_code == 400
+    
+    def test_update_prompt_invalid_collection(self, client: TestClient, sample_prompt_data):
+        create_response = client.post("/prompts", json=sample_prompt_data)
+        prompt_id = create_response.json()["id"]
+        
+        payload = {
+            "title": "Updated Title",
+            "content": "Updated content",
+            "description": "Updated description",
+            "collection_id": "nonexistent-collection"
+        }
+        response = client.put(f"/prompts/{prompt_id}", json=payload)
+        assert response.status_code == 400
 
 
 class TestCollections:
@@ -169,3 +261,25 @@ class TestCollections:
         if prompts:
             # Verify that collection_id is set to None
             assert prompts[0]["collection_id"] is None
+
+    def test_delete_collection_not_found(self, client: TestClient):
+        response = client.delete("/collections/nonexistent-id")
+        assert response.status_code == 404
+
+    def test_delete_collection_updates_prompts(self, client: TestClient, sample_collection_data, sample_prompt_data):
+        # Create collection
+        col_response = client.post("/collections", json=sample_collection_data)
+        collection_id = col_response.json()["id"]
+
+        # Create prompt inside the collection
+        prompt_payload = {**sample_prompt_data, "collection_id": collection_id}
+        prompt_response = client.post("/prompts", json=prompt_payload)
+        prompt_id = prompt_response.json()["id"]
+
+        # Delete collection
+        delete_response = client.delete(f"/collections/{collection_id}")
+        assert delete_response.status_code == 204
+
+        # Fetch the prompt and ensure its collection_id is now None
+        prompt_after_delete = client.get(f"/prompts/{prompt_id}").json()
+        assert prompt_after_delete["collection_id"] is None
