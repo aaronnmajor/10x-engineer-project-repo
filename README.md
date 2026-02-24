@@ -11,10 +11,11 @@ FastAPI-based prompt engineering platform for creating, organizing, and testing 
 3. [Architecture](#architecture)
 4. [Prerequisites & Installation](#prerequisites--installation)
 5. [Quick Start](#quick-start)
-6. [API Summary](#api-summary)
-7. [Development Setup](#development-setup)
-8. [Contributing](#contributing)
-9. [License](#license)
+6. [Docker](#docker)
+7. [API Summary](#api-summary)
+8. [Development Setup](#development-setup)
+9. [Contributing](#contributing)
+10. [License](#license)
 
 ---
 
@@ -99,6 +100,24 @@ pip install -r requirements.txt
 3. **Run Tests**
    ```bash
    pytest -v
+   ```
+
+---
+
+## Docker
+
+Use Docker Compose to build and run the FastAPI backend without installing Python locally:
+
+1. **Build & Start the Service**
+   ```bash
+   docker compose up --build backend
+   ```
+
+2. **Access the API** – http://localhost:8000 (Swagger UI at `/docs`).
+
+3. **Stop the Containers**
+   ```bash
+   docker compose down
    ```
 
 ---
