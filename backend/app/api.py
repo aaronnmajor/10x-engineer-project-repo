@@ -418,7 +418,7 @@ def delete_collection(collection_id: str):
     
     # Update each prompt's collection_id to None
     for prompt in associated_prompts:
-        updated_prompt = prompt.copy(update={"collection_id": None})
+        updated_prompt = prompt.model_copy(update={"collection_id": None})
         storage.update_prompt(prompt.id, updated_prompt)
     
     # Proceed with deleting the collection

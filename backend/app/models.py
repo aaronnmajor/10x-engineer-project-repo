@@ -1,6 +1,6 @@
 """Pydantic models for PromptLab"""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator
 from uuid import uuid4
@@ -37,7 +37,7 @@ def get_current_time() -> datetime:
         True
     """
 
-    return datetime.utcnow()
+    return datetime.now(timezone.utc)
 
 
 def normalize_tags(
