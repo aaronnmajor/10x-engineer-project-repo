@@ -5,7 +5,7 @@ In a production environment, this would be replaced with a database.
 """
 
 from typing import Dict, List, Optional
-from app.models import Prompt, Collection
+from app.models import Prompt, Collection, PromptVersion
 
 
 class Storage:
@@ -29,6 +29,7 @@ class Storage:
         """
         self._prompts: Dict[str, Prompt] = {}
         self._collections: Dict[str, Collection] = {}
+        self._prompt_versions: Dict[str, List[PromptVersion]] = {}
     
     # ============== Prompt Operations ==============
     
@@ -83,6 +84,75 @@ class Storage:
         """
         return list(self._prompts.values())
     
+    # ============== Prompt Version Operations ==============
+    
+    def create_version(self, prompt_id: str, prompt: Prompt) -> PromptVersion:
+        """Snapshot the current state of a prompt as a new version.
+    
+        Args:
+            prompt_id (str): The identifier of the prompt being versioned.
+            prompt (Prompt): The prompt whose data should be captured.
+    
+        Returns:
+            PromptVersion: The newly created version record.
+    
+        Example:
+            >>> storage = Storage()
+            >>> prompt = storage.create_prompt(Prompt(...))
+            >>> storage.create_version(prompt.id, prompt)
+            PromptVersion(...)
+        """
+        versions = self._prompt_versions.setdefault(prompt_id, [])
+        next_version_number = versions[-1].version_number + 1 if versions else 1
+        version = PromptVersion(
+            prompt_id=prompt_id,
+            version_number=next_version_number,
+            title=prompt.title,
+            content=prompt.content,
+            description=prompt.description,
+            tags=list(prompt.tags),
+        )
+        versions.append(version)
+        return version
+    
+    def get_versions(self, prompt_id: str) -> List[PromptVersion]:
+        """Return every stored version for a prompt, ordered from newest to oldest.
+
+        Args:
+            prompt_id (str): The identifier of the prompt whose versions should be listed.
+
+        Returns:
+            List[PromptVersion]: A reverse-chronological list of prompt versions.
+
+        Example:
+            >>> storage = Storage()
+            >>> storage.get_versions("prompt-1")
+            [PromptVersion(...), ...]
+        """
+        versions = self._prompt_versions.get(prompt_id, [])
+        return list(reversed(versions))
+    
+    def get_version(self, prompt_id: str, version_number: int) -> Optional[PromptVersion]:
+        """Retrieve a specific version of a prompt by version number.
+
+        Args:
+            prompt_id (str): The identifier of the prompt that owns the version.
+            version_number (int): The sequential version number to retrieve.
+
+        Returns:
+            Optional[PromptVersion]: The matching version if it exists, otherwise ``None``.
+
+        Example:
+            >>> storage = Storage()
+            >>> storage.get_version("prompt-1", 1)
+            PromptVersion(...)
+        """
+        versions = self._prompt_versions.get(prompt_id, [])
+        for version in versions:
+            if version.version_number == version_number:
+                return version
+        return None
+    
     def update_prompt(self, prompt_id: str, prompt: Prompt) -> Optional[Prompt]:
         """Replace an existing prompt with a new value.
 
@@ -121,6 +191,7 @@ class Storage:
         """
         if prompt_id in self._prompts:
             del self._prompts[prompt_id]
+            self._prompt_versions.pop(prompt_id, None)
             return True
         return False
     
@@ -232,6 +303,7 @@ class Storage:
         """
         self._prompts.clear()
         self._collections.clear()
+        self._prompt_versions.clear()
 
 
 # Global storage instance

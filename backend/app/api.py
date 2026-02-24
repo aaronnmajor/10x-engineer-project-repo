@@ -8,6 +8,7 @@ from app.models import (
     Prompt, PromptCreate, PromptUpdate, PromptPartialUpdate,
     Collection, CollectionCreate,
     PromptList, CollectionList, HealthResponse,
+    PromptVersion, PromptVersionList,
     get_current_time
 )
 from app.storage import storage
@@ -153,7 +154,9 @@ def create_prompt(prompt_data: PromptCreate):
             raise HTTPException(status_code=400, detail="Collection not found")
     
     prompt = Prompt(**prompt_data.model_dump())
-    return storage.create_prompt(prompt)
+    saved_prompt = storage.create_prompt(prompt)
+    storage.create_version(saved_prompt.id, saved_prompt)
+    return saved_prompt
 
 
 @app.put("/prompts/{prompt_id}", response_model=Prompt)
@@ -195,8 +198,13 @@ def update_prompt(prompt_id: str, prompt_data: PromptUpdate):
         created_at=existing.created_at,
         updated_at=get_current_time()  # Correctly update the timestamp
     )
-    
-    return storage.update_prompt(prompt_id, updated_prompt)
+
+    saved_prompt = storage.update_prompt(prompt_id, updated_prompt)
+    if not saved_prompt:
+        raise HTTPException(status_code=500, detail="Failed to update prompt")
+
+    storage.create_version(prompt_id, saved_prompt)
+    return saved_prompt
 
 
 # Added support for partial updates
@@ -233,7 +241,13 @@ def patch_prompt(prompt_id: str, prompt_data: PromptPartialUpdate):
         updated_at=get_current_time()  # Correctly update the timestamp
     )
 
-    return storage.update_prompt(prompt_id, updated_prompt)
+    saved_prompt = storage.update_prompt(prompt_id, updated_prompt)
+    if not saved_prompt:
+        raise HTTPException(status_code=500, detail="Failed to update prompt")
+
+    storage.create_version(prompt_id, saved_prompt)
+    return saved_prompt
+
 
 
 @app.delete("/prompts/{prompt_id}", status_code=204)
@@ -255,6 +269,69 @@ def delete_prompt(prompt_id: str):
     if not storage.delete_prompt(prompt_id):
         raise HTTPException(status_code=404, detail="Prompt not found")
     return None
+
+
+# ============== Prompt Version Endpoints ==============
+
+@app.get("/prompts/{prompt_id}/versions", response_model=PromptVersionList)
+def list_prompt_versions(prompt_id: str, order: str = "desc"):
+    """Return the historical versions for a prompt with optional ordering."""
+    prompt = storage.get_prompt(prompt_id)
+    if not prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+
+    if order not in {"asc", "desc"}:
+        raise HTTPException(
+            status_code=400,
+            detail="order parameter must be either 'asc' or 'desc'",
+        )
+
+    versions_desc = storage.get_versions(prompt_id)
+    versions = versions_desc if order == "desc" else list(reversed(versions_desc))
+    return PromptVersionList(versions=versions, total=len(versions))
+
+
+@app.get("/prompts/{prompt_id}/versions/{version_number}", response_model=PromptVersion)
+def get_prompt_version(prompt_id: str, version_number: int):
+    """Fetch a specific prompt version snapshot."""
+    prompt = storage.get_prompt(prompt_id)
+    if not prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+
+    version = storage.get_version(prompt_id, version_number)
+    if not version:
+        raise HTTPException(status_code=404, detail="Version not found")
+    return version
+
+
+@app.post("/prompts/{prompt_id}/versions/{version_number}/revert", response_model=Prompt)
+def revert_prompt_version(prompt_id: str, version_number: int):
+    """Revert a prompt to a historical version, creating a new snapshot."""
+    prompt = storage.get_prompt(prompt_id)
+    if not prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+
+    version = storage.get_version(prompt_id, version_number)
+    if not version:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    reverted_prompt = Prompt(
+        id=prompt.id,
+        title=version.title,
+        content=version.content,
+        description=version.description,
+        collection_id=prompt.collection_id,
+        tags=list(version.tags),
+        created_at=prompt.created_at,
+        updated_at=get_current_time(),
+    )
+
+    saved_prompt = storage.update_prompt(prompt_id, reverted_prompt)
+    if not saved_prompt:
+        raise HTTPException(status_code=500, detail="Failed to revert prompt")
+
+    storage.create_version(prompt_id, saved_prompt)
+    return saved_prompt
 
 
 # ============== Collection Endpoints ==============

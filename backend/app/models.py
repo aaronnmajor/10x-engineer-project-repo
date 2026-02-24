@@ -196,6 +196,33 @@ class Prompt(PromptBase):
         from_attributes = True
 
 
+# ============== Prompt Version Models ==============
+
+class PromptVersion(BaseModel):
+    """Immutable snapshot capturing a prompt's historical revision."""
+
+    id: str = Field(default_factory=generate_id)
+    prompt_id: str = Field(..., min_length=1)
+    version_number: int = Field(..., ge=1)
+    title: str = Field(..., min_length=1, max_length=200)
+    content: str = Field(..., min_length=1)
+    description: Optional[str] = Field(None, max_length=500)
+    tags: List[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=get_current_time)
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def validate_tags(cls, value):
+        return normalize_tags(value, allow_none=False)
+
+
+class PromptVersionList(BaseModel):
+    """Paginated response envelope for prompt version history."""
+
+    versions: List[PromptVersion]
+    total: int
+
+
 # ============== Collection Models ==============
 
 class CollectionBase(BaseModel):
