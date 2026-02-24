@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional
+from typing import List, Optional, Union
 
 from app.models import (
     Prompt, PromptCreate, PromptUpdate, PromptPartialUpdate,
@@ -11,7 +11,12 @@ from app.models import (
     get_current_time
 )
 from app.storage import storage
-from app.utils import sort_prompts_by_date, filter_prompts_by_collection, search_prompts
+from app.utils import (
+    sort_prompts_by_date,
+    filter_prompts_by_collection,
+    filter_prompts_by_tags,
+    search_prompts,
+)
 from app import __version__
 
 
@@ -54,16 +59,18 @@ def health_check():
 
 # ============== Prompt Endpoints ==============
 
-@app.get("/prompts", response_model=PromptList)
+@app.get("/prompts", response_model=Union[PromptList, List[Prompt]])
 def list_prompts(
     collection_id: Optional[str] = None,
-    search: Optional[str] = None
+    search: Optional[str] = None,
+    tags: Optional[str] = None,
 ):
     """Retrieve prompts with optional collection and keyword filters.
 
     Args:
         collection_id (Optional[str]): Identifier of the collection used to limit the result set.
         search (Optional[str]): Case-insensitive term applied to prompt titles, descriptions, and content.
+        tags (Optional[str]): Comma-separated tags that prompts must all contain.
 
     Returns:
         PromptList: Sorted prompts and the total count after filtering.
@@ -75,6 +82,7 @@ def list_prompts(
         >>> curl -G "http://localhost:8000/prompts" --data-urlencode "collection_id=abc123" --data-urlencode "search=chatbot"
     """
     prompts = storage.get_all_prompts()
+    tags_filter_applied = False
     
     # Filter by collection if specified
     if collection_id:
@@ -83,9 +91,18 @@ def list_prompts(
     # Search if query provided
     if search:
         prompts = search_prompts(prompts, search)
+
+    if tags:
+        tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
+        if tag_list:
+            prompts = filter_prompts_by_tags(prompts, tag_list)
+            tags_filter_applied = True
     
     # Sort by date (newest first)
     prompts = sort_prompts_by_date(prompts, descending=True)
+
+    if tags_filter_applied:
+        return prompts
     
     return PromptList(prompts=prompts, total=len(prompts))
 
@@ -174,6 +191,7 @@ def update_prompt(prompt_id: str, prompt_data: PromptUpdate):
         content=prompt_data.content if prompt_data.content is not None else existing.content,
         description=prompt_data.description if prompt_data.description is not None else existing.description,
         collection_id=prompt_data.collection_id if prompt_data.collection_id is not None else existing.collection_id,
+        tags=prompt_data.tags if prompt_data.tags is not None else existing.tags,
         created_at=existing.created_at,
         updated_at=get_current_time()  # Correctly update the timestamp
     )
@@ -210,6 +228,7 @@ def patch_prompt(prompt_id: str, prompt_data: PromptPartialUpdate):
         content=prompt_data.content if prompt_data.content is not None else existing.content,
         description=prompt_data.description if prompt_data.description is not None else existing.description,
         collection_id=prompt_data.collection_id if prompt_data.collection_id is not None else existing.collection_id,
+        tags=prompt_data.tags if prompt_data.tags is not None else existing.tags,
         created_at=existing.created_at,
         updated_at=get_current_time()  # Correctly update the timestamp
     )

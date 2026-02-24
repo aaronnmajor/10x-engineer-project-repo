@@ -40,6 +40,30 @@ def filter_prompts_by_collection(prompts: List[Prompt], collection_id: str) -> L
     return [p for p in prompts if p.collection_id == collection_id]
 
 
+def filter_prompts_by_tags(prompts: List[Prompt], tags: List[str]) -> List[Prompt]:
+    """Filter prompts that contain all provided tags.
+
+    Args:
+        prompts (List[Prompt]): Collection of prompts to evaluate.
+        tags (List[str]): Tags that each prompt must contain.
+
+    Returns:
+        List[Prompt]: Prompts that include every tag in ``tags``.
+    """
+    if not tags:
+        return prompts
+
+    normalized_query = {tag.strip().lower() for tag in tags if tag and tag.strip()}
+    if not normalized_query:
+        return prompts
+
+    return [
+        prompt
+        for prompt in prompts
+        if normalized_query.issubset(set(prompt.tags or []))
+    ]
+
+
 def search_prompts(prompts: List[Prompt], query: str) -> List[Prompt]:
     """Search prompts by title or description.
 

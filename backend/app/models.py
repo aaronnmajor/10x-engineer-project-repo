@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from uuid import uuid4
 
 
@@ -40,6 +40,36 @@ def get_current_time() -> datetime:
     return datetime.utcnow()
 
 
+def normalize_tags(
+    tags: Optional[List[str]],
+    *,
+    allow_none: bool = False,
+) -> Optional[List[str]]:
+    """Normalize and validate tag values."""
+    if tags is None:
+        return None if allow_none else []
+
+    if not isinstance(tags, list):
+        raise ValueError("Tags must be provided as a list of strings.")
+
+    normalized: List[str] = []
+    for tag in tags:
+        if not isinstance(tag, str):
+            raise ValueError("Each tag must be a string.")
+        cleaned = tag.strip().lower()
+        if not cleaned:
+            raise ValueError("Tags cannot be empty strings.")
+        if len(cleaned) > 30:
+            raise ValueError("Tags cannot exceed 30 characters.")
+        if cleaned not in normalized:
+            normalized.append(cleaned)
+
+    if len(normalized) > 10:
+        raise ValueError("A maximum of 10 unique tags is allowed.")
+
+    return normalized
+
+
 # ============== Prompt Models ==============
 
 class PromptBase(BaseModel):
@@ -64,6 +94,12 @@ class PromptBase(BaseModel):
     content: str = Field(..., min_length=1)
     description: Optional[str] = Field(None, max_length=500)
     collection_id: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def validate_tags(cls, value):
+        return normalize_tags(value, allow_none=False)
 
 
 class PromptCreate(PromptBase):
@@ -123,6 +159,12 @@ class PromptPartialUpdate(BaseModel):
     content: Optional[str] = Field(None, min_length=1)
     description: Optional[str] = Field(None, max_length=500)
     collection_id: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def validate_tags(cls, value):
+        return normalize_tags(value, allow_none=True)
 
 
 class Prompt(PromptBase):
