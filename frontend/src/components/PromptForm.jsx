@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { getCollections, createPrompt, updatePrompt } from '../services/api';
+import LoadingSpinner from './LoadingSpinner';
+import ErrorMessage from './ErrorMessage';
 import '../styles/PromptForm.css';
 
 function PromptForm({ isOpen, onClose, onSave, editingPrompt }) {
@@ -50,6 +52,8 @@ function PromptForm({ isOpen, onClose, onSave, editingPrompt }) {
       onClose();
     } catch (error) {
       setError(error.message);
+      // Trigger a toast or notification system
+      alert('Error saving prompt');
     } finally {
       setLoading(false);
     }
@@ -75,8 +79,11 @@ function PromptForm({ isOpen, onClose, onSave, editingPrompt }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <h2>{editingPrompt ? 'Edit Prompt' : 'New Prompt'}</h2>
-        {error && <div className="error-message">{error}</div>}
 
+        {/* Error Message */}
+        {error && <ErrorMessage message={error} />}
+
+        {/* Form Fields */}
         <div className="form-group">
           <label>Title <span>({title.length}/200)</span></label>
           <input
@@ -107,6 +114,7 @@ function PromptForm({ isOpen, onClose, onSave, editingPrompt }) {
           />
         </div>
 
+        {/* Collection Field */}
         <div className="form-group">
           <label>Collection</label>
           <select value={collectionId} onChange={e => setCollectionId(e.target.value)}>
@@ -117,6 +125,7 @@ function PromptForm({ isOpen, onClose, onSave, editingPrompt }) {
           </select>
         </div>
 
+        {/* Tags Field */}
         <div className="form-group">
           <label>Tags</label>
           <div className="tags-input-container">
@@ -131,10 +140,11 @@ function PromptForm({ isOpen, onClose, onSave, editingPrompt }) {
           </div>
         </div>
 
+        {/* Form Actions */}
         <div className="form-actions">
           <button onClick={onClose} className="cancel-button">Cancel</button>
           <button onClick={handleSave} className="save-button" disabled={!title || !content || loading}>
-            {loading ? 'Saving...' : 'Save'}
+            {loading ? <LoadingSpinner /> : 'Save'}
           </button>
         </div>
       </div>
@@ -144,3 +154,4 @@ function PromptForm({ isOpen, onClose, onSave, editingPrompt }) {
 }
 
 export default PromptForm;
+

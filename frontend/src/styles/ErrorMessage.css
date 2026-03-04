@@ -1,0 +1,28 @@
+.error-message-box {
+  background-color: #fdecea;
+  color: #dc2626;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.error-message-box p {
+  margin: 0;
+}
+
+.retry-button {
+  background-color: #f87171;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.retry-button:hover {
+  background-color: #b91c1c;
+}

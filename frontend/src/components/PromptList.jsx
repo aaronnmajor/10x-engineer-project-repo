@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { getPrompts } from '../services/api';
 import PromptCard from './PromptCard';
+import LoadingSpinner from './LoadingSpinner';
+import ErrorMessage from './ErrorMessage';
 import '../styles/PromptList.css';
 
-function PromptList({ selectedCollection }) {
+function PromptList({ selectedCollection, refreshTrigger, onNewPrompt, onEditPrompt, onDeletePrompt }) {
   const [prompts, setPrompts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -11,8 +13,9 @@ function PromptList({ selectedCollection }) {
 
   useEffect(() => {
     fetchPrompts();
-  }, [selectedCollection, search]);
+  }, [selectedCollection, search, refreshTrigger]);
 
+  // Improved fetch with error handler
   const fetchPrompts = async () => {
     setLoading(true);
     setError(null);
@@ -33,6 +36,7 @@ function PromptList({ selectedCollection }) {
 
   return (
     <div className="prompt-list-container">
+      {/* Search Bar and New Prompt Button */}
       <div className="prompt-list-header">
         <input
           type="text"
@@ -41,22 +45,42 @@ function PromptList({ selectedCollection }) {
           onChange={handleSearchChange}
           className="search-bar"
         />
-        <button className="new-prompt-button">New Prompt</button>
+        <button className="new-prompt-button" onClick={onNewPrompt}>
+          New Prompt
+        </button>
       </div>
 
-      {loading && <div className="spinner">Loading...</div>}
-      {error && <div className="error-message">{error}</div>}
+      {/* Loading State */}
+      {loading && <LoadingSpinner />}
+
+      {/* Error State */}
+      {error && <ErrorMessage message={error} onRetry={fetchPrompts} />}
+
+      {/* Empty State */}
       {!loading && prompts.length === 0 && (
-        <div className="empty-state">No prompts yet. Create your first prompt!</div>
+        <div className="empty-state">
+          <img src="/path-to-icon-or-illustration.png" alt="No prompts" />
+          <p>No prompts yet. Create your first prompt!</p>
+          <button onClick={onNewPrompt}>Create your first prompt</button>
+        </div>
       )}
 
-      <div className="prompt-grid">
-        {prompts.map((prompt) => (
-          <PromptCard key={prompt.id} prompt={prompt} />
-        ))}
-      </div>
+      {/* Prompt List */}
+      {!loading && !error && (
+        <div className="prompt-grid">
+          {prompts.map((prompt) => (
+            <PromptCard
+              key={prompt.id}
+              prompt={prompt}
+              onEdit={() => onEditPrompt(prompt)}
+              onDelete={() => onDeletePrompt(prompt)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 export default PromptList;
+

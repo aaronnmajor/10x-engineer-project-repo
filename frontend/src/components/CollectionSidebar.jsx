@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getCollections } from '../services/api';
+import LoadingSpinner from './LoadingSpinner';
+import ErrorMessage from './ErrorMessage';
 import '../styles/CollectionSidebar.css';
 
 function CollectionSidebar({ onSelectCollection, selectedCollection }) {
@@ -46,16 +48,30 @@ function CollectionSidebar({ onSelectCollection, selectedCollection }) {
     <div className="collection-sidebar">
       <h2>Collections</h2>
 
-      {loading && <div className="spinner">Loading...</div>}
-      {error && <div className="error-message">{error}</div>}
+      {/* Loading Spinner */}
+      {loading && <LoadingSpinner />}
 
+      {/* Error Message */}
+      {error && <ErrorMessage message={error} onRetry={fetchCollections} />}
+
+      {/* Empty State for Collections */}
+      {!loading && collections.length === 0 && (
+        <div className="empty-state">
+          <p>No collections yet. Create one to organize your prompts.</p>
+        </div>
+      )}
+
+      {/* Collection List */}
       <ul className="collection-list">
+        {/* All Prompts Item */}
         <li
           className={`collection-item ${!selectedCollection ? 'active' : ''}`}
           onClick={() => handleSelectCollection(null)}
         >
           All Prompts
         </li>
+
+        {/* Collection Items */}
         {collections.map((collection) => (
           <li
             key={collection.id}
@@ -68,6 +84,7 @@ function CollectionSidebar({ onSelectCollection, selectedCollection }) {
         ))}
       </ul>
 
+      {/* New Collection Button/Form */}
       {isFormVisible ? (
         <div className="new-collection-form">
           <input
@@ -92,3 +109,4 @@ function CollectionSidebar({ onSelectCollection, selectedCollection }) {
 }
 
 export default CollectionSidebar;
+
