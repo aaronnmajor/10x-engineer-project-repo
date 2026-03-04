@@ -51,7 +51,9 @@ function CollectionSidebar({ onSelectCollection, selectedCollection }) {
         description: newCollectionDescription,
       });
       fetchCollections();
-    setFormVisible(false);
+      setNewCollectionName('');
+      setNewCollectionDescription('');
+      setFormVisible(false);
     } catch (error) {
       console.error('Error creating collection:', error);
     }
