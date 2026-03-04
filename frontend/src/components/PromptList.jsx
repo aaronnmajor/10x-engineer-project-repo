@@ -59,7 +59,7 @@ function PromptList({ selectedCollection, refreshTrigger, onNewPrompt, onEditPro
       {/* Empty State */}
       {!loading && prompts.length === 0 && (
         <div className="empty-state">
-          <img src="/path-to-icon-or-illustration.png" alt="No prompts" />
+          <span style={{ fontSize: '48px' }}>📝</span>
           <p>No prompts yet. Create your first prompt!</p>
           <button onClick={onNewPrompt}>Create your first prompt</button>
         </div>
@@ -73,7 +73,7 @@ function PromptList({ selectedCollection, refreshTrigger, onNewPrompt, onEditPro
               key={prompt.id}
               prompt={prompt}
               onEdit={() => onEditPrompt(prompt)}
-              onDelete={() => onDeletePrompt(prompt)}
+              onDelete={() => onDeletePrompt(prompt.id)}
             />
           ))}
         </div>

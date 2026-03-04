@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getHealth } from './services/api';
+import { getHealth, deletePrompt } from './services/api';
 import CollectionSidebar from './components/CollectionSidebar';
 import PromptList from './components/PromptList';
 import PromptForm from './components/PromptForm';
@@ -16,10 +16,11 @@ function App() {
     checkHealthStatus();
   }, []);
 
+  // Check if the API service is healthy
   const checkHealthStatus = async () => {
     try {
       const health = await getHealth();
-      if (health.status === 'ok') {
+      if (health.status === 'healthy') { // Modified condition to check for 'healthy' status
         setHealthStatus(true);
       }
     } catch (error) {
@@ -41,8 +42,14 @@ function App() {
     setIsFormOpen(true);
   };
 
-  const handleDeletePrompt = () => {
+  // Handle prompt deletion, now asynchronously deletes using deletePrompt
+  const handleDeletePrompt = async (promptId) => { // Accepts promptId as parameter
+    try {
+      await deletePrompt(promptId); // Calls the deletePrompt API method
     setRefreshTrigger((prev) => prev + 1);
+    } catch (error) {
+      console.error('Failed to delete prompt:', error);
+    }
   };
 
   const handleFormSave = () => {
@@ -66,7 +73,7 @@ function App() {
           refreshTrigger={refreshTrigger}
           onNewPrompt={handleNewPrompt}
           onEditPrompt={handleEditPrompt}
-          onDeletePrompt={handleDeletePrompt}
+          onDeletePrompt={handleDeletePrompt} // Pass handleDeletePrompt to PromptList
         />
       </div>
       {isFormOpen && (
@@ -82,3 +89,4 @@ function App() {
 }
 
 export default App;
+

@@ -1,45 +1,125 @@
-// In frontend/src/components/PromptCard.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { getCollections, createCollection, deleteCollection } from '../services/api';
+import LoadingSpinner from './LoadingSpinner';
+import ErrorMessage from './ErrorMessage';
+import '../styles/CollectionSidebar.css';
 
-function PromptCard({ prompt, onEdit, onDelete }) {
-  const { id, title, content = '', tags = [], collection_id, created_at } = prompt;
-  const truncatedContent = content.length > 100 ? content.substring(0, 100) + '...' : content;
+function CollectionSidebar({ onSelectCollection, selectedCollection }) {
+  const [collections, setCollections] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [isFormVisible, setFormVisible] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState('');
+  const [newCollectionDescription, setNewCollectionDescription] = useState('');
 
-  const handleEdit = () => {
-    onEdit(prompt);
+  useEffect(() => {
+    fetchCollections();
+  }, []);
+
+  const fetchCollections = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getCollections();
+      setCollections(data.collections);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (event) => {
-    event.stopPropagation(); // Stop the event from triggering handleEdit
-    if (window.confirm('Are you sure you want to delete this prompt?')) {
-      onDelete(id); // Pass the id to the onDelete function
+  const handleSelectCollection = (collectionId) => {
+    onSelectCollection(collectionId);
+  };
+
+  const handleDeleteCollection = async (collectionId) => {
+    if (window.confirm('Delete collection? Prompts will be unassigned, not deleted.')) {
+      try {
+        await deleteCollection(collectionId);
+        fetchCollections();
+      } catch (error) {
+        console.error('Error deleting collection:', error);
+      }
+    }
+  };
+
+  const handleNewCollection = async () => {
+    try {
+      await createCollection({
+        name: newCollectionName,
+        description: newCollectionDescription,
+      });
+      fetchCollections();
+    setFormVisible(false);
+    } catch (error) {
+      console.error('Error creating collection:', error);
     }
   };
 
   return (
-    <div className="prompt-card" onClick={handleEdit}>
-      <h3>{title}</h3>
-      <p>{truncatedContent}</p>
-      <div className="tags">
-        {tags.map((tag, index) => (
-          <span key={index} className="tag">{tag}</span>
+    <div className="collection-sidebar">
+      <h2>Collections</h2>
+
+      {/* Loading Spinner */}
+      {loading && <LoadingSpinner />}
+
+      {/* Error Message */}
+      {error && <ErrorMessage message={error} onRetry={fetchCollections} />}
+
+      {/* Empty State for Collections */}
+      {!loading && collections.length === 0 && (
+        <div className="empty-state">
+          <p>No collections yet. Create one to organize your prompts.</p>
+        </div>
+      )}
+
+      {/* Collection List */}
+      <ul className="collection-list">
+        {/* All Prompts Item */}
+        <li
+          className={`collection-item ${!selectedCollection ? 'active' : ''}`}
+          onClick={() => handleSelectCollection(null)}
+        >
+          All Prompts
+        </li>
+
+        {/* Collection Items */}
+        {collections.map((collection) => (
+          <li
+            key={collection.id}
+            className={`collection-item ${selectedCollection === collection.id ? 'active' : ''}`}
+            onClick={() => handleSelectCollection(collection.id)}
+          >
+            {collection.name} <span>({collection.promptCount || 0})</span>
+            <button onClick={(e) => { e.stopPropagation(); handleDeleteCollection(collection.id); }}>Delete</button>
+          </li>
         ))}
-      </div>
-      <div className="card-footer">
-        <span>{collection_id ? `Collection: ${collection_id}` : 'No Collection'}</span>
-        <span>{new Date(created_at).toLocaleDateString()}</span>
-      </div>
-      <div className="card-actions">
-        <button onClick={handleEdit}>Edit</button>
-        <button onClick={handleDelete}>Delete</button>
-      </div>
+      </ul>
+
+      {/* New Collection Button/Form */}
+      {isFormVisible ? (
+        <div className="new-collection-form">
+          <input
+            type="text"
+            placeholder="Collection Name"
+            value={newCollectionName}
+            onChange={e => setNewCollectionName(e.target.value)}
+          />
+          <textarea
+            placeholder="Description"
+            value={newCollectionDescription}
+            onChange={e => setNewCollectionDescription(e.target.value)}
+          ></textarea>
+          <button onClick={handleNewCollection}>Save</button>
+          <button onClick={() => setFormVisible(false)}>Cancel</button>
+        </div>
+      ) : (
+        <button onClick={() => setFormVisible(true)} className="new-collection-button">New Collection</button>
+      )}
     </div>
   );
 }
 
-export default PromptCard;
-
-
-
-
+export default CollectionSidebar;
 

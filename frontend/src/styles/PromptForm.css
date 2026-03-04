@@ -1,6 +1,4 @@
-body {
-  font-family: Arial, sans-serif;
-}
+// Remove body rules from frontend/src/s@tyles/PromptForm.css
 
 .modal-overlay {
   position: fixed;
@@ -102,3 +100,4 @@ body {
   color: red;
   margin-bottom: 15px;
 }
+

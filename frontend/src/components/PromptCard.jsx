@@ -1,17 +1,16 @@
 import React from 'react';
-import '../styles/PromptList.css';
 
-function PromptCard({ prompt }) {
-  const { id, title, content, tags, collection_id, created_at } = prompt;
+function PromptCard({ prompt, onEdit, onDelete }) {
+  const { id, title, content = '', tags = [], collection_id, created_at } = prompt;
   const truncatedContent = content.length > 100 ? content.substring(0, 100) + '...' : content;
 
   const handleEdit = () => {
-    // Logic to open the edit form
+    onEdit(prompt);
   };
 
   const handleDelete = () => {
     if (window.confirm('Are you sure you want to delete this prompt?')) {
-      // Logic to delete prompt
+      onDelete(id);
     }
   };
 
