@@ -91,7 +91,7 @@ function CollectionSidebar({ onSelectCollection, selectedCollection }) {
             className={`collection-item ${selectedCollection === collection.id ? 'active' : ''}`}
             onClick={() => handleSelectCollection(collection.id)}
           >
-            {collection.name} <span>({collection.promptCount || 0})</span>
+            {collection.name}
             <button onClick={(e) => { e.stopPropagation(); handleDeleteCollection(collection.id); }}>Delete</button>
           </li>
         ))}

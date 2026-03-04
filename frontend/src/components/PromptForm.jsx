@@ -42,7 +42,13 @@ function PromptForm({ isOpen, onClose, onSave, editingPrompt }) {
     setLoading(true);
     setError(null);
     try {
-      const promptData = { title, content, description, collection_id: collectionId, tags };
+      const promptData = {
+        title,
+        content,
+        description,
+        collection_id: collectionId || null, // Ensures null is passed if no collection
+        tags
+      };
       if (editingPrompt) {
         await updatePrompt(editingPrompt.id, promptData);
       } else {
@@ -61,6 +67,7 @@ function PromptForm({ isOpen, onClose, onSave, editingPrompt }) {
 
   const handleTagAdd = (e) => {
     if (e.key === 'Enter' && e.target.value.trim() !== '') {
+      e.preventDefault(); // Added to prevent form submission
       const newTag = e.target.value.trim().toLowerCase();
       if (!tags.includes(newTag) && tags.length < 10) {
         setTags(prevTags => [...prevTags, newTag]);
