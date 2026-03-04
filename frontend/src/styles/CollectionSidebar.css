@@ -1,12 +1,12 @@
 .collection-sidebar {
   width: 250px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
   background-color: #fff;
   border-right: 1px solid #ddd;
   padding: 20px;
   box-sizing: border-box;
-  /* position: fixed; */
-  top: 0;
-  bottom: 0;
   overflow-y: auto;
   transition: transform 0.3s ease;
 }

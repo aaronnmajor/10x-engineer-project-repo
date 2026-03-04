@@ -12,6 +12,7 @@ function PromptForm({ isOpen, onClose, onSave, editingPrompt }) {
   const [collectionId, setCollectionId] = useState('');
   const [tags, setTags] = useState([]);
   const [collections, setCollections] = useState([]);
+  const [tagInput, setTagInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -35,6 +36,14 @@ function PromptForm({ isOpen, onClose, onSave, editingPrompt }) {
       setDescription(editingPrompt.description || '');
       setCollectionId(editingPrompt.collection_id || '');
       setTags(editingPrompt.tags || []);
+      setTagInput('');
+    } else {
+      setTitle('');
+      setContent('');
+      setDescription('');
+      setCollectionId('');
+      setTags([]);
+      setTagInput('');
     }
   }, [editingPrompt]);
 
@@ -66,13 +75,13 @@ function PromptForm({ isOpen, onClose, onSave, editingPrompt }) {
   };
 
   const handleTagAdd = (e) => {
-    if (e.key === 'Enter' && e.target.value.trim() !== '') {
-      e.preventDefault(); // Added to prevent form submission
-      const newTag = e.target.value.trim().toLowerCase();
-      if (!tags.includes(newTag) && tags.length < 10) {
-        setTags(prevTags => [...prevTags, newTag]);
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const newTag = tagInput.trim().toLowerCase();
+      if (newTag && !tags.includes(newTag) && tags.length < 10) {
+        setTags([...tags, newTag]);
       }
-      e.target.value = '';
+      setTagInput('');
     }
   };
 
@@ -136,7 +145,7 @@ function PromptForm({ isOpen, onClose, onSave, editingPrompt }) {
         <div className="form-group">
           <label>Tags</label>
           <div className="tags-input-container">
-            <input type="text" onKeyDown={handleTagAdd} placeholder="Add a tag and press Enter" />
+            <input type="text" value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagAdd} placeholder="Add a tag and press Enter" />
             <div className="tags-display">
               {tags.map((tag, index) => (
                 <span key={index} className="tag-chip">
